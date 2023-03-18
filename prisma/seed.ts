@@ -12,6 +12,7 @@ const userData: Prisma.UserCreateInput[] = [
           content:
             "We need a super dooper article about something. And we need to write it!",
           draft: false,
+          inProgress: true,
         },
       ],
     },
@@ -41,6 +42,7 @@ const userData: Prisma.UserCreateInput[] = [
           content:
             "Standard procedure, which is checking Excel calculations and, as usual, correcting it.",
           draft: false,
+          inProgress: true,
         },
         {
           title: "Make holiday plans!",
@@ -54,12 +56,12 @@ const userData: Prisma.UserCreateInput[] = [
 
 async function main() {
   console.log(`Start seeding ...`);
-  for (const data of userData) {
-    // cleanup the existing database
-    await prisma.user.delete({ where: { email: data.email } }).catch(() => {
-      // no worries if it doesn't exist yet
-    });
 
+  // cleanup the existing database
+  await prisma.task.deleteMany()
+  await prisma.user.deleteMany()
+
+  for (const data of userData) {
     const user = await prisma.user.create({
       data,
     });

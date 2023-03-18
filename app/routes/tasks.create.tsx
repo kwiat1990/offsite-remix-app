@@ -1,35 +1,40 @@
 import type { ActionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Form, Link, useActionData } from "@remix-run/react";
-import { useEffect, useRef } from "react";
+import { Form, Link, useActionData, useLoaderData } from "@remix-run/react";
 import { json } from "react-router";
 import { prisma } from "~/db.server";
 
+export async function loader() {
+  const users = await prisma.user.findMany();
+  return json({ users });
+}
+
 export async function action({ request }: ActionArgs) {
-  const formData = await await request.formData();
-  const { title, content, email } = Object.fromEntries(formData.entries());
+  const formData = await request.formData();
+  const { title, content, user } = Object.fromEntries(formData.entries());
+
   // const title = formData.get("title");
   // const content = formData.get("content");
-  // const authorEmail = formData.get("email");
+  // const user = formData.get("user");
 
   if (typeof title !== "string" || title.length === 0) {
     return json(
       {
         errors: {
           title: "Title is required",
-          email: null,
+          user: null,
         },
       },
       { status: 400 }
     );
   }
 
-  if (typeof email !== "string" || email.length < 3 || !email.includes("@")) {
+  if (typeof user !== "string" || title.length === 0) {
     return json(
       {
         errors: {
           title: null,
-          email: "Email is invalid",
+          user: "User must be selected",
         },
       },
       { status: 400 }
@@ -42,7 +47,7 @@ export async function action({ request }: ActionArgs) {
       content: content ? String(content) : null,
       author: {
         connect: {
-          email,
+          email: String(user),
         },
       },
     },
@@ -51,21 +56,12 @@ export async function action({ request }: ActionArgs) {
   return redirect("/tasks/drafts");
 }
 
-export default function Signup() {
+export default function Create() {
+  const { users } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (actionData?.errors?.title) {
-      titleRef.current?.focus();
-    } else if (actionData?.errors?.emailRef) {
-      emailRef.current?.focus();
-    }
-  }, [actionData]);
 
   const classes =
-    "w-full border-2 border-black block p-3 text-black placeholder:text-black shadow focus-visible:outline-none";
+    "w-full border-2 border-black block p-3 min-h-[60px] text-black placeholder:text-black shadow focus-visible:outline-none";
   const classesError = "border-red-500 shadow-red-500";
 
   return (
@@ -81,7 +77,6 @@ export default function Signup() {
             }`}
             name="title"
             placeholder="Title*"
-            ref={titleRef}
             type="text"
           />
           {actionData?.errors?.title && (
@@ -89,18 +84,22 @@ export default function Signup() {
           )}
         </div>
         <div className="mb-8">
-          <input
-            aria-invalid={actionData?.errors?.email}
+          <select
+            aria-invalid={actionData?.errors?.user}
             className={`${classes} ${
-              actionData?.errors?.email ? classesError : ""
+              actionData?.errors?.user ? classesError : ""
             }`}
-            name="email"
-            placeholder="Author (email address)*"
-            ref={emailRef}
-            type="email"
-          />
-          {actionData?.errors?.email && (
-            <div className="text-red-500">{actionData.errors.email}</div>
+            name="user"
+          >
+            <option disabled selected>
+              Choose user*
+            </option>
+            {users.map((user) => {
+              return <option value={user.email}>{user.name}</option>;
+            })}
+          </select>
+          {actionData?.errors?.user && (
+            <div className="text-red-500">{actionData.errors.user}</div>
           )}
         </div>
         <textarea

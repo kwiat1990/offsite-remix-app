@@ -21,6 +21,7 @@ model Task {
   title     String
   content   String?
   draft     Boolean  @default(true)
+  inProgress Boolean @default(false)
   completed Boolean  @default(false)
   viewCount Int      @default(0)
   authorId  Int?
